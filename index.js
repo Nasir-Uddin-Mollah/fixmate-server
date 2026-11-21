@@ -24,10 +24,14 @@ export async function connectToMongoDB() {
 
 const connectedClient = await connectToMongoDB();
 const db = connectedClient.db("fixmate");
+const users = db.collection("users");
+const services = db.collection("services");
+const bookings = db.collection("bookings");
+const payments = db.collection("payments");
 
 // JWT verification middleware
 const JWKS = createRemoteJWKSet(
-  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`)
+  new URL(`${process.env.CLIENT_URL}/api/auth/jwks`),
 );
 
 const verifyToken = async (req, res, next) => {
