@@ -3,6 +3,10 @@ import cors from "cors";
 import dotenv from "dotenv/config";
 import { MongoClient } from "mongodb";
 import { jwtVerify, createRemoteJWKSet } from "jose";
+import { userRoutes } from "./users.js";
+import { serviceRoutes } from "./services.js";
+import { bookingRoutes } from "./bookings.js";
+import { paymentRoutes } from "./payments.js";
 
 const app = express();
 const port = process.env.PORT || 5000;
@@ -85,8 +89,16 @@ const verifyTechnician = (req, res, next) => {
   next();
 };
 
+// Collection-based route files
+app.use("/api/users", userRoutes(users, verifyToken, verifyAdmin));
+app.use("/api/services", serviceRoutes(services, verifyToken, verifyTechnician));
+app.use("/api/bookings", bookingRoutes(bookings, verifyToken, verifyCustomer, verifyTechnician, verifyAdmin));
+app.use("/api/payments", paymentRoutes(payments, verifyToken, verifyCustomer));
+
+
+
 app.get("/", (req, res) => {
-  res.send("Hello World!");
+  res.send("Welcome to the FixMate API!");
 });
 
 app.listen(port, () => {
