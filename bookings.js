@@ -18,5 +18,15 @@ export const bookingRoutes = (
   // PATCH /api/bookings/:id/status    -> verifyToken, verifyTechnician
   // GET   /api/admin/bookings         -> verifyToken, verifyAdmin
 
+  router.post("/", verifyToken, verifyCustomer, async (req, res) => {
+    const bookingData = req.body;
+    try {
+      const result = await bookings.insertOne(bookingData);
+      res.status(201).send(result);
+    } catch (error) {
+      res.status(500).json({ message: "Error creating booking", error: error.message });
+    }
+  });
+
   return router;
 };
