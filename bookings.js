@@ -11,10 +11,6 @@ export const bookingRoutes = (
 ) => {
   const router = Router();
 
-  // Example endpoints to add later:
-  // POST  /api/bookings               -> verifyToken, verifyCustomer
-  // GET   /api/bookings/my            -> verifyToken, verifyCustomer
-  // PATCH /api/bookings/:id/cancel    -> verifyToken, verifyCustomer
   // GET   /api/admin/bookings         -> verifyToken, verifyAdmin
 
   router.post("/", verifyToken, verifyCustomer, async (req, res) => {
@@ -101,6 +97,15 @@ export const bookingRoutes = (
       res.status(400).send({ message: "Invalid request id" });
     }
   });
+
+  router.get("/admin/all", verifyToken, verifyAdmin, async (req, res) => {
+    try{
+      const allBookings = await bookings.find().sort({_id: -1}).toArray();
+      res.send(allBookings);
+    }catch(error){
+      res.status(500).json({ message: "Error fetching bookings", error: error.message });
+    }
+  })
 
   return router;
 };
