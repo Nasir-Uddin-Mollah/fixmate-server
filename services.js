@@ -1,7 +1,12 @@
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 
-export const serviceRoutes = (services, verifyToken, verifyTechnician) => {
+export const serviceRoutes = (
+  services,
+  verifyToken,
+  verifyTechnician,
+  verifyAdmin,
+) => {
   const router = Router();
 
   router.post("/", verifyToken, verifyTechnician, async (req, res) => {
@@ -33,6 +38,47 @@ export const serviceRoutes = (services, verifyToken, verifyTechnician) => {
     } catch (error) {
       console.error(error);
       res.status(500).send({ message: "Could not fetch services" });
+    }
+  });
+
+  router.get("/admin/all", verifyToken, verifyAdmin, async (req, res) => {
+    try {
+      const all = await services.find().sort({ createdAt: -1 }).toArray();
+
+      const pending = all.filter((s) => s.approvalStatus === "pending");
+      const others = all.filter((s) => s.approvalStatus !== "pending");
+
+      res.send([...pending, ...others]);
+    } catch {
+      res.status(500).send({ message: "Could not fetch submissions" });
+    }
+  });
+
+  router.patch("/:id/approval", verifyToken, verifyAdmin, async (req, res) => {
+    try {
+      const status = req.body.approvalStatus;
+      if (status !== "approved" && status !== "rejected") {
+        return res.status(400).send({ message: "Invalid approval status" });
+      }
+
+      const updated = await services.findOneAndUpdate(
+        { _id: new ObjectId(req.params.id) },
+        {
+          $set: {
+            approvalStatus: status,
+            isAvailable: status === "approved",
+          },
+        },
+        { returnDocument: "after" },
+      );
+
+      if (!updated) {
+        return res.status(404).send({ message: "Service not found" });
+      }
+
+      res.send(updated);
+    } catch {
+      res.status(400).send({ message: "Invalid service id" });
     }
   });
 
