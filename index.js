@@ -28,7 +28,7 @@ export async function connectToMongoDB() {
 
 const connectedClient = await connectToMongoDB();
 const db = connectedClient.db("fixmate");
-const users = db.collection("users");
+const users = db.collection("user");
 const services = db.collection("services");
 const bookings = db.collection("bookings");
 const payments = db.collection("payments");
