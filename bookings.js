@@ -15,8 +15,6 @@ export const bookingRoutes = (
   // POST  /api/bookings               -> verifyToken, verifyCustomer
   // GET   /api/bookings/my            -> verifyToken, verifyCustomer
   // PATCH /api/bookings/:id/cancel    -> verifyToken, verifyCustomer
-  // GET   /api/bookings/technician    -> verifyToken, verifyTechnician
-  // PATCH /api/bookings/:id/status    -> verifyToken, verifyTechnician
   // GET   /api/admin/bookings         -> verifyToken, verifyAdmin
 
   router.post("/", verifyToken, verifyCustomer, async (req, res) => {
@@ -61,6 +59,46 @@ export const bookingRoutes = (
       res.send(cancelled);
     } catch {
       res.status(400).send({ message: "Invalid booking id" });
+    }
+  });
+
+  router.get("/technician", verifyToken, verifyTechnician, async (req, res) => {
+    try {
+      const requests = await bookings
+        .find({ technicianEmail: req.user.email })
+        .sort({ _id: -1 })
+        .toArray();
+      res.send(requests);
+    } catch (error) {
+      console.error(error);
+      res.status(500).send({ message: "Could not fetch requests" });
+    }
+  });
+
+  router.patch("/:id/status", verifyToken, verifyTechnician, async (req, res) => {
+    try {
+      const update = { status: req.body.status };
+
+      if (typeof req.body.finalAmount === "number") {
+        update.finalAmount = req.body.finalAmount;
+      }
+
+      const updated = await bookings.findOneAndUpdate(
+        {
+          _id: new ObjectId(req.params.id),
+          technicianEmail: req.user.email,
+        },
+        { $set: update },
+        { returnDocument: "after" },
+      );
+
+      if (!updated) {
+        return res.status(404).send({ message: "Request not found" });
+      }
+
+      res.send(updated);
+    } catch {
+      res.status(400).send({ message: "Invalid request id" });
     }
   });
 
