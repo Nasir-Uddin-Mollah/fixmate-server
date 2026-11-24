@@ -1,7 +1,6 @@
 import { Router } from "express";
 import { ObjectId } from "mongodb";
 
-/** Routes for the `bookings` collection. */
 export const bookingRoutes = (
   bookings,
   verifyToken,
@@ -12,10 +11,34 @@ export const bookingRoutes = (
   const router = Router();
 
   router.post("/", verifyToken, verifyCustomer, async (req, res) => {
-    const bookingData = { ...req.body, createdAt: new Date() };
     try {
+      const { serviceId } = req.body;
+      if (!serviceId) {
+        return res.status(400).send({ message: "serviceId is required" });
+      }
+
+      const existing = await bookings.findOne({
+        customerEmail: req.user.email,
+        serviceId: serviceId,
+        status: { $in: ["requested", "accepted", "in-progress"] },
+      });
+
+      if (existing) {
+        return res.status(400).send({
+          message: "You already have an active request for this service",
+        });
+      }
+
+      const bookingData = {
+        ...req.body,
+        customerEmail: req.user.email,
+        customerName: req.user.name,
+        status: "requested",
+        createdAt: new Date(),
+      };
+
       const result = await bookings.insertOne(bookingData);
-      res.status(201).send(result);
+      res.status(201).send({ ...bookingData, _id: result.insertedId });
     } catch (error) {
       res.status(500).json({ message: "Error creating booking", error: error.message });
     }

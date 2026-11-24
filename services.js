@@ -82,6 +82,62 @@ export const serviceRoutes = (
     }
   });
 
+  router.patch("/:id", verifyToken, verifyTechnician, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const isAvailabilityOnly =
+        Object.keys(req.body).length === 1 && "isAvailable" in req.body;
+
+      const updateData = { ...req.body };
+      delete updateData._id;
+      delete updateData.technicianEmail;
+      delete updateData.technicianName;
+
+      if (!isAvailabilityOnly) {
+        updateData.approvalStatus = "pending";
+      }
+
+      const updated = await services.findOneAndUpdate(
+        {
+          _id: new ObjectId(id),
+          technicianEmail: req.user.email,
+        },
+        { $set: updateData },
+        { returnDocument: "after" },
+      );
+
+      if (!updated) {
+        return res
+          .status(404)
+          .send({ message: "Service not found or unauthorized" });
+      }
+
+      res.send(updated);
+    } catch {
+      res.status(400).send({ message: "Invalid service id or update error" });
+    }
+  });
+
+  router.delete("/:id", verifyToken, verifyTechnician, async (req, res) => {
+    try {
+      const { id } = req.params;
+      const result = await services.deleteOne({
+        _id: new ObjectId(id),
+        technicianEmail: req.user.email,
+      });
+
+      if (result.deletedCount === 0) {
+        return res
+          .status(404)
+          .send({ message: "Service not found or unauthorized" });
+      }
+
+      res.send({ success: true, message: "Service deleted successfully" });
+    } catch {
+      res.status(400).send({ message: "Invalid service id" });
+    }
+  });
+
   router.get("/:id", async (req, res) => {
     try {
       const service = await services.findOne({
