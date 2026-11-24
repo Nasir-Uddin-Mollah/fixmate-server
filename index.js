@@ -93,7 +93,7 @@ const verifyTechnician = (req, res, next) => {
 app.use("/api/users", userRoutes(users, verifyToken, verifyAdmin));
 app.use("/api/services", serviceRoutes(services, verifyToken, verifyTechnician, verifyAdmin));
 app.use("/api/bookings", bookingRoutes(bookings, verifyToken, verifyCustomer, verifyTechnician, verifyAdmin));
-app.use("/api/payments", paymentRoutes(payments, verifyToken, verifyCustomer));
+app.use("/api/payments", paymentRoutes(payments, verifyToken, verifyCustomer, verifyAdmin));
 
 
 
