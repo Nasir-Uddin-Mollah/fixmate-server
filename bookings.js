@@ -11,10 +11,8 @@ export const bookingRoutes = (
 ) => {
   const router = Router();
 
-  // GET   /api/admin/bookings         -> verifyToken, verifyAdmin
-
   router.post("/", verifyToken, verifyCustomer, async (req, res) => {
-    const bookingData = req.body;
+    const bookingData = { ...req.body, createdAt: new Date() };
     try {
       const result = await bookings.insertOne(bookingData);
       res.status(201).send(result);
