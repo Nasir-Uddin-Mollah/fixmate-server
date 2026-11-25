@@ -94,28 +94,68 @@ export const bookingRoutes = (
 
   router.patch("/:id/status", verifyToken, verifyTechnician, async (req, res) => {
     try {
-      const update = { status: req.body.status };
+      const { id } = req.params;
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid request id" });
+      }
 
-      if (typeof req.body.finalAmount === "number") {
-        update.finalAmount = req.body.finalAmount;
+      const nextStatus = String(req.body.status || "").trim();
+      const allowed = ["accepted", "rejected", "in-progress", "completed"];
+      if (!allowed.includes(nextStatus)) {
+        return res.status(400).send({ message: "Invalid status transition" });
+      }
+
+      const booking = await bookings.findOne({
+        _id: new ObjectId(id),
+        technicianEmail: req.user.email,
+      });
+
+      if (!booking) {
+        return res.status(404).send({ message: "Request not found" });
+      }
+
+      const current = String(booking.status || "");
+      if (current === "cancelled" || current === "rejected") {
+        return res.status(400).send({ message: "Cannot change a cancelled or rejected job" });
+      }
+
+      const isValidTransition =
+        (current === "requested" && (nextStatus === "accepted" || nextStatus === "rejected")) ||
+        (current === "accepted" && nextStatus === "in-progress") ||
+        (current === "in-progress" && nextStatus === "completed");
+
+      if (!isValidTransition) {
+        return res.status(400).send({
+          message: `Invalid status transition from ${current} to ${nextStatus}`,
+        });
+      }
+
+      const update = { status: nextStatus };
+
+      if (nextStatus === "completed") {
+        const finalAmount = Number(req.body.finalAmount);
+        if (!Number.isFinite(finalAmount) || finalAmount <= 0) {
+          return res.status(400).send({
+            message: "A valid finalAmount greater than 0 is required to complete a job",
+          });
+        }
+        update.finalAmount = finalAmount;
       }
 
       const updated = await bookings.findOneAndUpdate(
-        {
-          _id: new ObjectId(req.params.id),
-          technicianEmail: req.user.email,
-        },
+        { _id: booking._id, status: current },
         { $set: update },
         { returnDocument: "after" },
       );
 
       if (!updated) {
-        return res.status(404).send({ message: "Request not found" });
+        return res.status(409).send({ message: "Booking status changed. Please refresh." });
       }
 
       res.send(updated);
-    } catch {
-      res.status(400).send({ message: "Invalid request id" });
+    } catch (error) {
+      console.error(error);
+      res.status(500).send({ message: "Could not update request status" });
     }
   });
 

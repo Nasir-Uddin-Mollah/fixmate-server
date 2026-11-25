@@ -90,7 +90,7 @@ const verifyTechnician = (req, res, next) => {
 };
 
 // Collection-based route files
-app.use("/api/users", userRoutes(users, verifyToken, verifyAdmin));
+app.use("/api/users", userRoutes(users, verifyToken, verifyAdmin, bookings, services));
 app.use("/api/services", serviceRoutes(services, verifyToken, verifyTechnician, verifyAdmin));
 app.use("/api/bookings", bookingRoutes(bookings, verifyToken, verifyCustomer, verifyTechnician, verifyAdmin));
 app.use("/api/payments", paymentRoutes(payments, verifyToken, verifyCustomer, verifyAdmin));
