@@ -76,22 +76,34 @@ export const userRoutes = (users, verifyToken, verifyAdmin, bookings, services) 
 
   router.patch("/:id/role", verifyToken, verifyAdmin, async (req, res) => {
     try {
-      const {role} = req.body;
+      const { role } = req.body;
       const allowed = ["customer", "technician", "admin"];
 
       if (!allowed.includes(role)) {
         return res.status(400).send({ message: "Invalid role" });
       }
 
+      const {id} = req.params;
+      if (!ObjectId.isValid(id)) {
+        return res.status(400).send({ message: "Invalid user id" });
+      }
+
+      const target = await users.findOne({ _id: new ObjectId(id) });
+      if (!target) {
+        return res.status(404).send({ message: "User not found" });
+      }
+
+      const adminEmail = String(req.user?.email || "").trim().toLowerCase();
+      const targetEmail = String(target.email || "").trim().toLowerCase();
+      if (adminEmail && targetEmail && adminEmail === targetEmail) {
+        return res.status(400).send({ message: "You cannot change your own role" });
+      }
+
       const updated = await users.findOneAndUpdate(
-        { _id: new ObjectId(req.params.id) },
+        { _id: new ObjectId(id) },
         { $set: { role } },
         { returnDocument: "after" },
       );
-
-      if (!updated) {
-        return res.status(404).send({ message: "User not found" });
-      }
 
       res.send(updated);
     } catch {
